@@ -213,6 +213,12 @@
       color: var(--text);
     }
 
+    .traffic-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
     .footer {
       text-align: center;
       font-size: 0.95rem;
@@ -331,11 +337,15 @@ function render(id, data, emptyText = "Ingen avganger funnet") {
 }
 
 function isBybane(c) {
-  return (c.serviceJourney?.line?.transportMode || "") === "tram";
+  return (c.serviceJourney?.line?.transportMode || "").toLowerCase() === "tram";
 }
 
 function isBus(c) {
-  return (c.serviceJourney?.line?.transportMode || "") === "bus";
+  return (c.serviceJourney?.line?.transportMode || "").toLowerCase() === "bus";
+}
+
+function getDepartureTimestamp(c) {
+  return new Date(c.expectedDepartureTime || c.aimedDepartureTime).getTime();
 }
 
 async function fetchStop(id) {
@@ -345,7 +355,13 @@ async function fetchStop(id) {
         aimedDepartureTime
         expectedDepartureTime
         destinationDisplay { frontText }
-        serviceJourney { line { publicCode transportMode } }
+        serviceJourney {
+          line {
+            id
+            publicCode
+            transportMode
+          }
+        }
       }
     }
   }`;
@@ -369,11 +385,52 @@ async function fetchStop(id) {
 
 function textFromNode(parent, tagName) {
   const node = parent.getElementsByTagName(tagName)[0];
-  return node ? node.textContent : "";
+  return node ? node.textContent.trim() : "";
 }
 
-async function traffic() {
+function textFromAny(parent, tagNames) {
+  for (const tagName of tagNames) {
+    const value = textFromNode(parent, tagName);
+    if (value) return value;
+  }
+  return "";
+}
+
+function getLineRefsFromSituation(situation) {
+  return [...situation.getElementsByTagName("LineRef")]
+    .map(node => node.textContent.trim())
+    .filter(Boolean);
+}
+
+function getStopRefsFromSituation(situation) {
+  const tags = ["StopPointRef", "StopPlaceRef", "QuayRef"];
+  const refs = [];
+  for (const tag of tags) {
+    refs.push(
+      ...[...situation.getElementsByTagName(tag)]
+        .map(node => node.textContent.trim())
+        .filter(Boolean)
+    );
+  }
+  return refs;
+}
+
+function intersects(setA, values) {
+  return values.some(v => setA.has(v));
+}
+
+function formatLineIdsForMeta(lineRefs, lineIdMap) {
+  const names = lineRefs
+    .map(ref => lineIdMap.get(ref))
+    .filter(Boolean);
+
+  return [...new Set(names)].join(", ");
+}
+
+async function traffic(relevantLineRefs) {
   try {
+    const relevantStops = new Set([FLORIDA, MOHLENPRIS]);
+
     const r = await fetch("https://api.entur.io/realtime/v1/rest/sx?datasetId=SKY", {
       headers: { "ET-Client-Name": CLIENT }
     });
@@ -383,25 +440,45 @@ async function traffic() {
     }
 
     const xml = new DOMParser().parseFromString(await r.text(), "text/xml");
-    const msgs = [...xml.getElementsByTagName("PtSituationElement")];
+    const situations = [...xml.getElementsByTagName("PtSituationElement")];
 
-    if (!msgs.length) {
+    const filtered = situations.filter(situation => {
+      const lineRefs = getLineRefsFromSituation(situation);
+      const stopRefs = getStopRefsFromSituation(situation);
+
+      const matchesLine = lineRefs.length > 0 && intersects(relevantLineRefs, lineRefs);
+      const matchesStop = stopRefs.length > 0 && intersects(relevantStops, stopRefs);
+
+      return matchesLine || matchesStop;
+    });
+
+    if (!filtered.length) {
       document.getElementById("traffic-list").innerHTML = `
         <div class="traffic-item">
-          <div class="traffic-title">Ingen trafikkmeldinger</div>
-          <div class="traffic-text">Det er ingen aktive trafikkmeldinger akkurat nå.</div>
+          <div class="traffic-title">Ingen relevante trafikkmeldinger</div>
+          <div class="traffic-text">Ingen aktive meldinger for linjene eller stoppestedene som vises på tavlen.</div>
         </div>
       `;
       return;
     }
 
     document.getElementById("traffic-list").innerHTML =
-      msgs.slice(0, 4).map(m => `
-        <div class="traffic-item">
-          <div class="traffic-title">${textFromNode(m, "Summary") || "Trafikkmelding"}</div>
-          <div class="traffic-text">${textFromNode(m, "Description") || ""}</div>
-        </div>
-      `).join("");
+      filtered.slice(0, 4).map(situation => {
+        const summary =
+          textFromAny(situation, ["Summary", "SummaryText"]) || "Trafikkmelding";
+        const description =
+          textFromAny(situation, ["Description", "Detail", "DetailText"]) || "";
+        const lineRefs = getLineRefsFromSituation(situation);
+        const lineMeta = formatLineIdsForMeta(lineRefs, relevantLineRefs);
+
+        return `
+          <div class="traffic-item">
+            <div class="traffic-title">${summary}</div>
+            <div class="traffic-text">${description}</div>
+            ${lineMeta ? `<div class="traffic-meta">Linjer: ${lineMeta}</div>` : ``}
+          </div>
+        `;
+      }).join("");
   } catch (error) {
     document.getElementById("traffic-list").innerHTML = `
       <div class="traffic-item">
@@ -417,21 +494,27 @@ async function load() {
   try {
     const [f, m] = await Promise.all([fetchStop(FLORIDA), fetchStop(MOHLENPRIS)]);
 
-    f.sort((a, b) =>
-      new Date(a.expectedDepartureTime || a.aimedDepartureTime) -
-      new Date(b.expectedDepartureTime || b.aimedDepartureTime)
-    );
+    f.sort((a, b) => getDepartureTimestamp(a) - getDepartureTimestamp(b));
+    m.sort((a, b) => getDepartureTimestamp(a) - getDepartureTimestamp(b));
 
-    m.sort((a, b) =>
-      new Date(a.expectedDepartureTime || a.aimedDepartureTime) -
-      new Date(b.expectedDepartureTime || b.aimedDepartureTime)
-    );
+    const floridaBybane = f.filter(isBybane).slice(0, 6);
+    const floridaBuss = f.filter(isBus).slice(0, 6);
+    const mohlenprisBuss = m.filter(isBus).slice(0, 6);
 
-    render("florida-bybane", f.filter(isBybane).slice(0, 6));
-    render("florida-buss", f.filter(isBus).slice(0, 6));
-    render("mohlenpris-buss", m.filter(isBus).slice(0, 6));
+    render("florida-bybane", floridaBybane);
+    render("florida-buss", floridaBuss);
+    render("mohlenpris-buss", mohlenprisBuss);
 
-    await traffic();
+    const lineIdMap = new Map();
+    [...floridaBybane, ...floridaBuss, ...mohlenprisBuss].forEach(call => {
+      const lineId = call?.serviceJourney?.line?.id;
+      const publicCode = call?.serviceJourney?.line?.publicCode;
+      if (lineId) {
+        lineIdMap.set(lineId, publicCode || lineId);
+      }
+    });
+
+    await traffic(lineIdMap);
 
     document.getElementById("updated").textContent =
       "Oppdatert " + new Date().toLocaleTimeString("no-NO");
@@ -441,6 +524,13 @@ async function load() {
     render("florida-bybane", [], "Klarte ikke hente Bybane");
     render("florida-buss", [], "Klarte ikke hente buss");
     render("mohlenpris-buss", [], "Klarte ikke hente buss");
+
+    document.getElementById("traffic-list").innerHTML = `
+      <div class="traffic-item">
+        <div class="traffic-title">Klarte ikke hente trafikkmeldinger</div>
+        <div class="traffic-text">Prøv igjen senere.</div>
+      </div>
+    `;
 
     document.getElementById("updated").textContent = "Feil ved oppdatering";
   }
