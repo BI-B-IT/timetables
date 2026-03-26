@@ -33,7 +33,9 @@
 <body>
   <div class="panel">
     <h1>Live Ryde-kart</h1>
-    <p>Viser tilgjengelige RYDE-kjøretøy fra Entur/GBFS for valgt system-id, f.eks. <code>rydeskien</code>.</p>
+    <p>Viser tilgjengelige RYDE-kjøretøy fra Entur/GBFS rundt valgt adresse. Standardoppsettet er satt til <code>Kong Christian Frederiks plass 5, 5006 Bergen</code>.</p>
+    <input id="address" value="Kong Christian Frederiks plass 5, 5006 Bergen" placeholder="Adresse" />
+    <input id="radius" type="number" value="800" min="100" step="100" placeholder="Radius i meter" />
     <input id="systemId" value="rydeskien" placeholder="F.eks. rydeskien" />
     <button id="loadBtn">Last inn / oppdater</button>
     <div class="meta" id="status">Klar.</div>
@@ -43,7 +45,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
-    const map = L.map('map').setView([59.2096, 9.6080], 13);
+    const map = L.map('map').setView([60.39299, 5.32415], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap-bidragsytere'
@@ -51,11 +53,31 @@
 
     const markers = L.layerGroup().addTo(map);
     let zoneLayer;
+    let addressMarker;
+    let radiusCircle;
 
     async function fetchJson(url) {
       const res = await fetch(url, { headers: { 'ET-Client-Name': 'demo-ryde-map' } });
       if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
       return await res.json();
+    }
+
+    async function geocodeAddress(address) {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=no&q=${encodeURIComponent(address)}`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'no' } });
+      if (!res.ok) throw new Error('Kunne ikke geokode adressen.');
+      const data = await res.json();
+      if (!data.length) throw new Error('Fant ikke adressen.');
+      return { lat: Number(data[0].lat), lon: Number(data[0].lon), label: data[0].display_name };
+    }
+
+    function distanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = deg => deg * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
     }
 
     function setStatus(text) {
@@ -64,16 +86,24 @@
 
     async function loadRydeSystem() {
       const systemId = document.getElementById('systemId').value.trim();
-      if (!systemId) return;
+      const address = document.getElementById('address').value.trim();
+      const radius = Number(document.getElementById('radius').value || 800);
+      if (!systemId || !address) return;
 
-      setStatus(`Laster ${systemId} ...`);
+      setStatus(`Laster ${systemId} rundt ${address} ...`);
       markers.clearLayers();
       if (zoneLayer) {
         map.removeLayer(zoneLayer);
         zoneLayer = null;
       }
+      if (addressMarker) map.removeLayer(addressMarker);
+      if (radiusCircle) map.removeLayer(radiusCircle);
 
       try {
+        const center = await geocodeAddress(address);
+        addressMarker = L.marker([center.lat, center.lon]).addTo(map).bindPopup(`Adresse: ${center.label}`);
+        radiusCircle = L.circle([center.lat, center.lon], { radius }).addTo(map);
+
         const gbfsRoot = await fetchJson(`https://api.entur.io/mobility/v2/gbfs/v3/${systemId}/gbfs`);
         const feeds = gbfsRoot?.data?.feeds || [];
         const vehicleStatusUrl = feeds.find(f => f.name === 'vehicle_status')?.url;
@@ -90,19 +120,21 @@
 
         const vehicles = vehicleStatus?.data?.vehicles || [];
         const available = vehicles.filter(v => {
+          if (typeof v.lat !== 'number' || typeof v.lon !== 'number') return false;
           if (typeof v.is_reserved === 'boolean' && v.is_reserved) return false;
           if (typeof v.is_disabled === 'boolean' && v.is_disabled) return false;
-          if (typeof v.is_available === 'boolean') return v.is_available;
-          return true;
+          if (typeof v.is_available === 'boolean' && !v.is_available) return false;
+          return distanceMeters(center.lat, center.lon, v.lat, v.lon) <= radius;
         });
 
-        const latlngs = [];
+        const latlngs = [[center.lat, center.lon]];
         available.forEach(v => {
-          if (typeof v.lat !== 'number' || typeof v.lon !== 'number') return;
+          const dist = Math.round(distanceMeters(center.lat, center.lon, v.lat, v.lon));
           const marker = L.circleMarker([v.lat, v.lon], { radius: 6 });
           marker.bindPopup(`
             <strong>${systemInfo?.data?.name || systemId}</strong><br>
             ID: ${v.vehicle_id || 'ukjent'}<br>
+            Avstand: ${dist} m<br>
             Batteri: ${v.current_range_meters ? Math.round(v.current_range_meters/1000) + ' km estimert' : 'ukjent'}<br>
             Type: ${v.vehicle_type_id || 'ukjent'}
           `);
@@ -115,11 +147,8 @@
           zoneLayer = L.geoJSON({ type: 'FeatureCollection', features }).addTo(map);
         }
 
-        if (latlngs.length) {
-          map.fitBounds(latlngs, { padding: [40, 40] });
-        }
-
-        setStatus(`Oppdatert: ${available.length} tilgjengelige kjøretøy vist.`);
+        map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+        setStatus(`Oppdatert: ${available.length} tilgjengelige kjøretøy innen ${radius} meter.`);
       } catch (err) {
         console.error(err);
         setStatus(`Feil: ${err.message}`);
