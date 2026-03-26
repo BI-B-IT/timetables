@@ -2,75 +2,80 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Florida – Bybane og buss</title>
+
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --card2: #334155;
-      --text: #f8fafc;
-      --muted: #cbd5e1;
-      --accent: #38bdf8;
-      --ok: #22c55e;
-      --warn: #f59e0b;
-    }
-
-    * {
-      box-sizing: border-box;
+      --bg: #eef4f8;
+      --panel: #ffffff;
+      --border: #d9e6ef;
+      --text: #173042;
+      --muted: #5e7687;
+      --accent: #0073b0;
+      --accent-soft: #e6f2f9;
+      --ok: #0f9d58;
     }
 
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: linear-gradient(180deg, #020617 0%, var(--bg) 100%);
+      font-family: Arial, sans-serif;
+      background: var(--bg);
       color: var(--text);
-      min-height: 100vh;
       padding: 24px;
     }
 
     .container {
-      max-width: 1100px;
-      margin: 0 auto;
+      max-width: 1200px;
+      margin: auto;
     }
 
+    /* HEADER */
     .header {
       display: flex;
       justify-content: space-between;
-      align-items: end;
-      gap: 16px;
-      margin-bottom: 24px;
+      align-items: center;
+      margin-bottom: 20px;
       flex-wrap: wrap;
+    }
+
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo img {
+      max-width: 70%;
     }
 
     h1 {
       margin: 0;
-      font-size: 2.4rem;
+      font-size: 2.2rem;
     }
 
     .subtitle {
       color: var(--muted);
-      margin-top: 6px;
-      font-size: 1rem;
     }
 
     .clock {
       font-size: 2rem;
-      font-weight: bold;
       color: var(--accent);
+      font-weight: bold;
     }
 
-    .statusbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 20px;
-      color: var(--muted);
-      font-size: 0.95rem;
-      flex-wrap: wrap;
-    }
-
+    /* GRID */
     .grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -78,281 +83,176 @@
     }
 
     .panel {
-      background: rgba(30, 41, 59, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.15);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      background: var(--panel);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 16px;
     }
 
     .panel h2 {
-      margin: 0 0 16px;
-      font-size: 1.5rem;
-    }
-
-    .departures {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+      margin-top: 0;
     }
 
     .departure {
-      background: var(--card2);
-      border-radius: 14px;
-      padding: 14px 16px;
       display: grid;
-      grid-template-columns: 90px 1fr 90px;
-      gap: 12px;
-      align-items: center;
+      grid-template-columns: 80px 1fr 80px;
+      gap: 10px;
+      padding: 12px;
+      border-bottom: 1px solid #eee;
     }
 
     .line {
-      font-size: 1.4rem;
       font-weight: bold;
       color: var(--accent);
+      font-size: 1.2rem;
     }
 
     .destination {
-      font-size: 1.15rem;
-      font-weight: 600;
-    }
-
-    .meta {
-      color: var(--muted);
-      font-size: 0.95rem;
-      margin-top: 4px;
+      font-weight: bold;
     }
 
     .time {
       text-align: right;
     }
 
-    .clocktime {
-      font-size: 1.2rem;
-      font-weight: bold;
-    }
-
     .minutes {
       color: var(--ok);
-      font-size: 0.95rem;
-      margin-top: 4px;
-    }
-
-    .error, .loading, .empty {
-      background: rgba(51, 65, 85, 0.7);
-      border-radius: 14px;
-      padding: 16px;
-      color: var(--muted);
+      font-size: 0.9rem;
     }
 
     .footer {
-      margin-top: 24px;
+      margin-top: 20px;
       color: var(--muted);
-      font-size: 0.9rem;
       text-align: center;
     }
 
-    @media (max-width: 800px) {
+    @media(max-width: 800px){
       .grid {
         grid-template-columns: 1fr;
-      }
-
-      .departure {
-        grid-template-columns: 75px 1fr 75px;
-      }
-
-      .clock {
-        font-size: 1.5rem;
-      }
-
-      h1 {
-        font-size: 2rem;
       }
     }
   </style>
 </head>
+
 <body>
-  <div class="container">
-    <div class="header">
+<div class="container">
+
+  <div class="header">
+    <div class="left">
+      <div class="logo">
+        <img src="https://media.snl.no/media/4802/standard_bi.png">
+      </div>
       <div>
         <h1>Florida</h1>
         <div class="subtitle">Bergen · Bybane og buss</div>
       </div>
-      <div class="clock" id="clock">--:--:--</div>
+    </div>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Bybane</h2>
+      <div id="bybane">Laster...</div>
     </div>
 
-    <div class="statusbar">
-      <div id="lastUpdated">Oppdaterer…</div>
-      <div>Oppdateres automatisk hvert 30. sekund</div>
-    </div>
-
-    <div class="grid">
-      <section class="panel">
-        <h2>Bybane</h2>
-        <div id="bybane" class="departures">
-          <div class="loading">Laster avganger…</div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Buss</h2>
-        <div id="buss" class="departures">
-          <div class="loading">Laster avganger…</div>
-        </div>
-      </section>
-    </div>
-
-    <div class="footer">
-      Data fra Entur API
+    <div class="panel">
+      <h2>Buss</h2>
+      <div id="buss">Laster...</div>
     </div>
   </div>
 
-  <script>
-    const STOP_PLACE_ID = "NSR:StopPlace:58544";
-    const ET_CLIENT_NAME = "dingithubbruker-florida-tavle";
+  <div class="footer" id="updated">Oppdaterer...</div>
 
-    function updateClock() {
-      const now = new Date();
-      document.getElementById("clock").textContent =
-        now.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-    }
+</div>
 
-    function formatTime(isoString) {
-      const date = new Date(isoString);
-      return date.toLocaleTimeString("no-NO", {
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-    }
+<script>
+const STOP_ID = "NSR:StopPlace:58544";
 
-    function minutesUntil(isoString) {
-      const now = new Date();
-      const departure = new Date(isoString);
-      const diffMs = departure - now;
-      const diffMin = Math.round(diffMs / 60000);
+function clock(){
+  const now = new Date();
+  document.getElementById("clock").textContent =
+    now.toLocaleTimeString("no-NO",{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(clock,1000); clock();
 
-      if (diffMin <= 0) return "nå";
-      return `${diffMin} min`;
-    }
+function getTime(t){
+  return new Date(t).toLocaleTimeString("no-NO",{hour:'2-digit',minute:'2-digit'});
+}
 
-    function isBybane(call) {
-      const code = call?.serviceJourney?.line?.publicCode || "";
-      const name = (call?.serviceJourney?.line?.name || "").toLowerCase();
-      return code.startsWith("1") || name.includes("bybane") || name.includes("bergen light rail");
-    }
+function mins(t){
+  const diff = Math.round((new Date(t)-new Date())/60000);
+  return diff<=0 ? "nå" : diff+" min";
+}
 
-    function renderDepartures(elementId, departures) {
-      const el = document.getElementById(elementId);
+function isBybane(c){
+  const mode = (c.serviceJourney.line.transportMode||"").toLowerCase();
+  const name = (c.serviceJourney.line.name||"").toLowerCase();
+  return mode==="tram" || name.includes("bybane");
+}
 
-      if (!departures.length) {
-        el.innerHTML = `<div class="empty">Ingen avganger funnet.</div>`;
-        return;
-      }
+function isBus(c){
+  const mode = (c.serviceJourney.line.transportMode||"").toLowerCase();
+  return mode==="bus";
+}
 
-      el.innerHTML = departures.map(call => {
-        const line = call?.serviceJourney?.line?.publicCode || "-";
-        const destination = call?.destinationDisplay?.frontText || "Ukjent destinasjon";
-        const departureTime = call.expectedDepartureTime || call.aimedDepartureTime;
-        const quay = call?.quay?.publicCode ? `Plattform ${call.quay.publicCode}` : "";
-
-        return `
-          <div class="departure">
-            <div class="line">${line}</div>
-            <div>
-              <div class="destination">${destination}</div>
-              <div class="meta">${quay}${call.realtime ? " · sanntid" : ""}</div>
-            </div>
-            <div class="time">
-              <div class="clocktime">${formatTime(departureTime)}</div>
-              <div class="minutes">${minutesUntil(departureTime)}</div>
-            </div>
+function render(id,data){
+  document.getElementById(id).innerHTML =
+    data.map(c=>{
+      const t = c.expectedDepartureTime || c.aimedDepartureTime;
+      return `
+        <div class="departure">
+          <div class="line">${c.serviceJourney.line.publicCode||"-"}</div>
+          <div>
+            <div class="destination">${c.destinationDisplay.frontText}</div>
           </div>
-        `;
-      }).join("");
-    }
+          <div class="time">
+            ${getTime(t)}
+            <div class="minutes">${mins(t)}</div>
+          </div>
+        </div>`;
+    }).join("");
+}
 
-    async function fetchDepartures() {
-      const query = `
-      {
-        stopPlace(id: "${STOP_PLACE_ID}") {
-          id
-          name
-          estimatedCalls(numberOfDepartures: 20) {
-            realtime
-            aimedDepartureTime
-            expectedDepartureTime
-            destinationDisplay {
-              frontText
-            }
-            serviceJourney {
-              line {
-                id
-                publicCode
-                name
-              }
-            }
-            quay {
-              id
-              publicCode
-            }
-          }
-        }
-      }`;
-
-      try {
-        const response = await fetch("https://api.entur.io/journey-planner/v3/graphql", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "ET-Client-Name": ET_CLIENT_NAME
-          },
-          body: JSON.stringify({ query })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        const calls = result?.data?.stopPlace?.estimatedCalls || [];
-
-        const sorted = calls
-          .filter(call => call.expectedDepartureTime || call.aimedDepartureTime)
-          .sort((a, b) => {
-            const ta = new Date(a.expectedDepartureTime || a.aimedDepartureTime).getTime();
-            const tb = new Date(b.expectedDepartureTime || b.aimedDepartureTime).getTime();
-            return ta - tb;
-          });
-
-        const bybane = sorted.filter(isBybane).slice(0, 6);
-        const buss = sorted.filter(call => !isBybane(call)).slice(0, 6);
-
-        renderDepartures("bybane", bybane);
-        renderDepartures("buss", buss);
-
-        document.getElementById("lastUpdated").textContent =
-          `Sist oppdatert: ${new Date().toLocaleTimeString("no-NO", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-          })}`;
-      } catch (error) {
-        document.getElementById("bybane").innerHTML =
-          `<div class="error">Klarte ikke hente data.</div>`;
-        document.getElementById("buss").innerHTML =
-          `<div class="error">Klarte ikke hente data.</div>`;
-        document.getElementById("lastUpdated").textContent =
-          `Feil ved oppdatering: ${error.message}`;
-        console.error(error);
+async function fetchData(){
+  const query = `{
+    stopPlace(id:"${STOP_ID}") {
+      estimatedCalls(numberOfDepartures:30) {
+        aimedDepartureTime
+        expectedDepartureTime
+        destinationDisplay{frontText}
+        serviceJourney{line{publicCode name transportMode}}
       }
     }
+  }`;
 
-    updateClock();
-    setInterval(updateClock, 1000);
+  const res = await fetch("https://api.entur.io/journey-planner/v3/graphql",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "ET-Client-Name":"github-demo-florida"
+    },
+    body:JSON.stringify({query})
+  });
 
-    fetchDepartures();
-    setInterval(fetchDepartures, 30000);
-  </script>
+  const json = await res.json();
+  const calls = json.data.stopPlace.estimatedCalls;
+
+  const sorted = calls.sort((a,b)=>
+    new Date(a.expectedDepartureTime||a.aimedDepartureTime) -
+    new Date(b.expectedDepartureTime||b.aimedDepartureTime)
+  );
+
+  render("bybane", sorted.filter(isBybane).slice(0,5));
+  render("buss", sorted.filter(isBus).slice(0,5));
+
+  document.getElementById("updated").textContent =
+    "Oppdatert: "+new Date().toLocaleTimeString("no-NO");
+}
+
+fetchData();
+setInterval(fetchData,30000);
+</script>
+
 </body>
 </html>
