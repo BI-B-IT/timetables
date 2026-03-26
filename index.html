@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Florida – Bybane og buss</title>
+  <title>Florida og Møhlenpris – Kollektivtavle</title>
 
   <style>
     :root {
@@ -17,26 +17,37 @@
       --ok: #0f9d58;
     }
 
-    body {
+    html, body {
       margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
       font-family: Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding: 24px;
+      overflow: hidden;
+    }
+
+    body {
+      padding: 20px;
+      box-sizing: border-box;
     }
 
     .container {
-      max-width: 1200px;
-      margin: auto;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    /* HEADER */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
       flex-wrap: wrap;
+      gap: 12px;
+      min-height: 90px;
     }
 
     .left {
@@ -54,10 +65,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .logo img {
       max-width: 70%;
+      max-height: 70%;
     }
 
     h1 {
@@ -67,19 +80,22 @@
 
     .subtitle {
       color: var(--muted);
+      font-size: 1rem;
     }
 
     .clock {
       font-size: 2rem;
       color: var(--accent);
       font-weight: bold;
+      white-space: nowrap;
     }
 
-    /* GRID */
     .grid {
+      flex: 1;
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      min-height: 0;
     }
 
     .panel {
@@ -87,48 +103,82 @@
       border-radius: 16px;
       border: 1px solid var(--border);
       padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
 
     .panel h2 {
-      margin-top: 0;
+      margin: 0 0 4px 0;
+      font-size: 1.5rem;
+    }
+
+    .panel-subtitle {
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+
+    .departures {
+      flex: 1;
+      overflow: hidden;
     }
 
     .departure {
       display: grid;
-      grid-template-columns: 80px 1fr 80px;
+      grid-template-columns: 72px 1fr 72px;
       gap: 10px;
-      padding: 12px;
+      padding: 12px 0;
       border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+
+    .departure:last-child {
+      border-bottom: none;
     }
 
     .line {
       font-weight: bold;
       color: var(--accent);
-      font-size: 1.2rem;
+      font-size: 1.35rem;
     }
 
     .destination {
       font-weight: bold;
+      font-size: 1.05rem;
+      line-height: 1.2;
     }
 
     .time {
       text-align: right;
+      font-size: 1rem;
     }
 
     .minutes {
       color: var(--ok);
       font-size: 0.9rem;
+      margin-top: 2px;
     }
 
     .footer {
-      margin-top: 20px;
       color: var(--muted);
       text-align: center;
+      font-size: 0.95rem;
+      min-height: 24px;
     }
 
-    @media(max-width: 800px){
+    @media (max-width: 1100px) {
       .grid {
         grid-template-columns: 1fr;
+        overflow-y: auto;
+      }
+
+      html, body {
+        overflow: auto;
+      }
+
+      .container {
+        height: auto;
       }
     }
   </style>
@@ -140,11 +190,11 @@
   <div class="header">
     <div class="left">
       <div class="logo">
-        <img src="https://media.snl.no/media/4802/standard_bi.png">
+        <img src="https://media.snl.no/media/4802/standard_bi.png" alt="BI logo">
       </div>
       <div>
-        <h1>Florida</h1>
-        <div class="subtitle">Bergen · Bybane og buss</div>
+        <h1>Kollektivtavle</h1>
+        <div class="subtitle">Florida og Møhlenpris · Bergen</div>
       </div>
     </div>
     <div class="clock" id="clock">--:--</div>
@@ -152,13 +202,21 @@
 
   <div class="grid">
     <div class="panel">
-      <h2>Bybane</h2>
-      <div id="bybane">Laster...</div>
+      <h2>Florida</h2>
+      <div class="panel-subtitle">Bybane</div>
+      <div id="florida-bybane" class="departures">Laster...</div>
     </div>
 
     <div class="panel">
-      <h2>Buss</h2>
-      <div id="buss">Laster...</div>
+      <h2>Florida</h2>
+      <div class="panel-subtitle">Buss</div>
+      <div id="florida-buss" class="departures">Laster...</div>
+    </div>
+
+    <div class="panel">
+      <h2>Møhlenpris</h2>
+      <div class="panel-subtitle">Buss</div>
+      <div id="mohlenpris-buss" class="departures">Laster...</div>
     </div>
   </div>
 
@@ -167,91 +225,141 @@
 </div>
 
 <script>
-const STOP_ID = "NSR:StopPlace:58544";
+const FLORIDA_STOP_ID = "NSR:StopPlace:58544";
+const MOHLENPRIS_STOP_ID = "NSR:StopPlace:30918";
+const ET_CLIENT_NAME = "github-demo-kollektivtavle";
 
 function clock(){
   const now = new Date();
   document.getElementById("clock").textContent =
-    now.toLocaleTimeString("no-NO",{hour:'2-digit',minute:'2-digit'});
+    now.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" });
 }
-setInterval(clock,1000); clock();
+setInterval(clock, 1000);
+clock();
 
 function getTime(t){
-  return new Date(t).toLocaleTimeString("no-NO",{hour:'2-digit',minute:'2-digit'});
+  return new Date(t).toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" });
 }
 
 function mins(t){
-  const diff = Math.round((new Date(t)-new Date())/60000);
-  return diff<=0 ? "nå" : diff+" min";
+  const diff = Math.round((new Date(t) - new Date()) / 60000);
+  return diff <= 0 ? "nå" : diff + " min";
+}
+
+function getDepartureTime(c){
+  return c.expectedDepartureTime || c.aimedDepartureTime;
 }
 
 function isBybane(c){
-  const mode = (c.serviceJourney.line.transportMode||"").toLowerCase();
-  const name = (c.serviceJourney.line.name||"").toLowerCase();
-  return mode==="tram" || name.includes("bybane");
+  const mode = (c.serviceJourney?.line?.transportMode || "").toLowerCase();
+  const name = (c.serviceJourney?.line?.name || "").toLowerCase();
+  return mode === "tram" || name.includes("bybane");
 }
 
 function isBus(c){
-  const mode = (c.serviceJourney.line.transportMode||"").toLowerCase();
-  return mode==="bus";
+  const mode = (c.serviceJourney?.line?.transportMode || "").toLowerCase();
+  return mode === "bus";
 }
 
-function render(id,data){
-  document.getElementById(id).innerHTML =
-    data.map(c=>{
-      const t = c.expectedDepartureTime || c.aimedDepartureTime;
-      return `
-        <div class="departure">
-          <div class="line">${c.serviceJourney.line.publicCode||"-"}</div>
-          <div>
-            <div class="destination">${c.destinationDisplay.frontText}</div>
-          </div>
-          <div class="time">
-            ${getTime(t)}
-            <div class="minutes">${mins(t)}</div>
-          </div>
-        </div>`;
-    }).join("");
+function render(id, data, emptyText = "Ingen avganger funnet"){
+  const el = document.getElementById(id);
+
+  if (!data.length) {
+    el.innerHTML = `
+      <div class="departure">
+        <div class="line">-</div>
+        <div>
+          <div class="destination">${emptyText}</div>
+        </div>
+        <div class="time">--:--</div>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = data.map(c => {
+    const t = getDepartureTime(c);
+    return `
+      <div class="departure">
+        <div class="line">${c.serviceJourney?.line?.publicCode || "-"}</div>
+        <div>
+          <div class="destination">${c.destinationDisplay?.frontText || "Ukjent destinasjon"}</div>
+        </div>
+        <div class="time">
+          ${getTime(t)}
+          <div class="minutes">${mins(t)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
-async function fetchData(){
+async function fetchStopData(stopId){
   const query = `{
-    stopPlace(id:"${STOP_ID}") {
+    stopPlace(id:"${stopId}") {
       estimatedCalls(numberOfDepartures:30) {
         aimedDepartureTime
         expectedDepartureTime
-        destinationDisplay{frontText}
-        serviceJourney{line{publicCode name transportMode}}
+        destinationDisplay { frontText }
+        serviceJourney { line { publicCode name transportMode } }
       }
     }
   }`;
 
-  const res = await fetch("https://api.entur.io/journey-planner/v3/graphql",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "ET-Client-Name":"github-demo-florida"
+  const res = await fetch("https://api.entur.io/journey-planner/v3/graphql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "ET-Client-Name": ET_CLIENT_NAME
     },
-    body:JSON.stringify({query})
+    body: JSON.stringify({ query })
   });
 
+  if (!res.ok) {
+    throw new Error("HTTP " + res.status);
+  }
+
   const json = await res.json();
-  const calls = json.data.stopPlace.estimatedCalls;
+  return json?.data?.stopPlace?.estimatedCalls || [];
+}
 
-  const sorted = calls.sort((a,b)=>
-    new Date(a.expectedDepartureTime||a.aimedDepartureTime) -
-    new Date(b.expectedDepartureTime||b.aimedDepartureTime)
-  );
+function sortCalls(calls){
+  return calls
+    .filter(c => getDepartureTime(c))
+    .sort((a, b) =>
+      new Date(getDepartureTime(a)) - new Date(getDepartureTime(b))
+    );
+}
 
-  render("bybane", sorted.filter(isBybane).slice(0,5));
-  render("buss", sorted.filter(isBus).slice(0,5));
+async function fetchData(){
+  try {
+    const [floridaCalls, mohlenprisCalls] = await Promise.all([
+      fetchStopData(FLORIDA_STOP_ID),
+      fetchStopData(MOHLENPRIS_STOP_ID)
+    ]);
 
-  document.getElementById("updated").textContent =
-    "Oppdatert: "+new Date().toLocaleTimeString("no-NO");
+    const floridaSorted = sortCalls(floridaCalls);
+    const mohlenprisSorted = sortCalls(mohlenprisCalls);
+
+    render("florida-bybane", floridaSorted.filter(isBybane).slice(0, 8));
+    render("florida-buss", floridaSorted.filter(isBus).slice(0, 8));
+    render("mohlenpris-buss", mohlenprisSorted.filter(isBus).slice(0, 8));
+
+    document.getElementById("updated").textContent =
+      "Oppdatert: " + new Date().toLocaleTimeString("no-NO");
+  } catch (error) {
+    console.error(error);
+
+    render("florida-bybane", [], "Klarte ikke hente Bybane");
+    render("florida-buss", [], "Klarte ikke hente buss");
+    render("mohlenpris-buss", [], "Klarte ikke hente buss");
+
+    document.getElementById("updated").textContent = "Feil ved oppdatering";
+  }
 }
 
 fetchData();
-setInterval(fetchData,30000);
+setInterval(fetchData, 30000);
 </script>
 
 </body>
