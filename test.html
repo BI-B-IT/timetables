@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Florida og Møhlenpris – Kollektivtavle</title>
+
+  <style>
+    :root {
+      --bg: #eef4f8;
+      --panel: #ffffff;
+      --border: #d9e6ef;
+      --text: #173042;
+      --muted: #5e7687;
+      --accent: #0073b0;
+      --accent-soft: #e6f2f9;
+      --ok: #0f9d58;
+      --warn: #b45309;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    body {
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 16px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      min-height: 90px;
+    }
+
+    .left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      width: 80px;
+      height: 80px;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo img {
+      max-width: 70%;
+      max-height: 70%;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .clock {
+      font-size: 2rem;
+      color: var(--accent);
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .panel h2 {
+      margin: 0 0 4px 0;
+      font-size: 1.5rem;
+    }
+
+    .panel-subtitle {
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+
+    .departures {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .departure {
+      display: grid;
+      grid-template-columns: 72px 1fr 72px;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+
+    .departure:last-child {
+      border-bottom: none;
+    }
+
+    .line {
+      font-weight: bold;
+      color: var(--accent);
+      font-size: 1.35rem;
+    }
+
+    .destination {
+      font-weight: bold;
+      font-size: 1.05rem;
+      line-height: 1.2;
+    }
+
+    .time {
+      text-align: right;
+      font-size: 1rem;
+    }
+
+    .minutes {
+      color: var(--ok);
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
+
+    .traffic-panel {
+      background: var(--panel);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .traffic-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .traffic-header h2 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+
+    .traffic-subtitle {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .traffic-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 16px;
+    }
+
+    .traffic-item {
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fcfdff;
+      min-height: 0;
+    }
+
+    .traffic-title {
+      font-weight: bold;
+      color: var(--warn);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .traffic-text {
+      font-size: 0.95rem;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .traffic-meta {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .traffic-empty {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .footer {
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.95rem;
+      min-height: 24px;
+    }
+
+    @media (max-width: 1100px) {
+      html, body {
+        overflow: auto;
+      }
+
+      .container {
+        height: auto;
+        grid-template-rows: auto auto auto auto;
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .traffic-list {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="left">
+      <div class="logo">
+        <img src="https://media.snl.no/media/4802/standard_bi.png" alt="BI logo">
+      </div>
+      <div>
+        <h1>Kollektivtavle</h1>
+        <div class="subtitle">Florida og Møhlenpris · Bergen</div>
+      </div>
+    </div>
+    <div class="clock" id="clock">--:--</div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Florida</h2>
+      <div class="panel-subtitle">Bybane</div>
+      <div id="florida-bybane" class="departures">Laster...</div>
+    </div>
+
+    <div class="panel">
+      <h2>Florida</h2>
+      <div class="panel-subtitle">Buss</div>
+      <div id="florida-buss" class="departures">Laster...</div>
+    </div>
+
+    <div class="panel">
+      <h2>Møhlenpris</h2>
+      <div class="panel-subtitle">Buss</div>
+      <div id="mohlenpris-buss" class="departures">Laster...</div>
+    </div>
+  </div>
+
+  <div class="traffic-panel">
+    <div class="traffic-header">
+      <div>
+        <h2>Trafikkmeldinger</h2>
+        <div class="traffic-subtitle">Skyss / Vestland</div>
+      </div>
+      <div class="traffic-subtitle" id="traffic-updated">Oppdaterer trafikkmeldinger...</div>
+    </div>
+    <div id="traffic-list" class="traffic-list">
+      <div class="traffic-empty">Laster trafikkmeldinger...</div>
+    </div>
+  </div>
+
+  <div class="footer" id="updated">Oppdaterer...</div>
+
+</div>
+
+<script>
+const FLORIDA_STOP_ID = "NSR:StopPlace:58544";
+const MOHLENPRIS_STOP_ID = "NSR:StopPlace:30918";
+const ET_CLIENT_NAME = "github-demo-kollektivtavle";
+
+function clock(){
+  const now = new Date();
+  document.getElementById("clock").textContent =
+    now.toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" });
+}
+setInterval(clock, 1000);
+clock();
+
+function getTime(t){
+  return new Date(t).toLocaleTimeString("no-NO", { hour: "2-digit", minute: "2-digit" });
+}
+
+function mins(t){
+  const diff = Math.round((new Date(t) - new Date()) / 60000);
+  return diff <= 0 ? "nå" : diff + " min";
+}
+
+function getDepartureTime(c){
+  return c.expectedDepartureTime || c.aimedDepartureTime;
+}
+
+function isBybane(c){
+  const mode = (c.serviceJourney?.line?.transportMode || "").toLowerCase();
+  const name = (c.serviceJourney?.line?.name || "").toLowerCase();
+  return mode === "tram" || name.includes("bybane");
+}
+
+function isBus(c){
+  const mode = (c.serviceJourney?.line?.transportMode || "").toLowerCase();
+  return mode === "bus";
+}
+
+function render(id, data, emptyText = "Ingen avganger funnet"){
+  const el = document.getElementById(id);
+
+  if (!data.length) {
+    el.innerHTML = `
+      <div class="departure">
+        <div class="line">-</div>
+        <div>
+          <div class="destination">${emptyText}</div>
+        </div>
+        <div class="time">--:--</div>
+      </div>
+    `;
+    return;
+  }
+
+  el.innerHTML = data.map(c => {
+    const t = getDepartureTime(c);
+    return `
+      <div class="departure">
+        <div class="line">${c.serviceJourney?.line?.publicCode || "-"}</div>
+        <div>
+          <div class="destination">${c.destinationDisplay?.frontText || "Ukjent destinasjon"}</div>
+        </div>
+        <div class="time">
+          ${getTime(t)}
+          <div class="minutes">${mins(t)}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function fetchStopData(stopId){
+  const query = `{
+    stopPlace(id:"${stopId}") {
+      estimatedCalls(numberOfDepartures:30) {
+        aimedDepartureTime
+        expectedDepartureTime
+        destinationDisplay { frontText }
+        serviceJourney { line { publicCode name transportMode } }
+      }
+    }
+  }`;
+
+  const res = await fetch("https://api.entur.io/journey-planner/v3/graphql", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "ET-Client-Name": ET_CLIENT_NAME
+    },
+    body: JSON.stringify({ query })
+  });
+
+  if (!res.ok) {
+    throw new Error("HTTP " + res.status);
+  }
+
+  const json = await res.json();
+  return json?.data?.stopPlace?.estimatedCalls || [];
+}
+
+function sortCalls(calls){
+  return calls
+    .filter(c => getDepartureTime(c))
+    .sort((a, b) =>
+      new Date(getDepartureTime(a)) - new Date(getDepartureTime(b))
+    );
+}
+
+function textFromFirst(parent, names){
+  for (const name of names) {
+    const nodes = parent.getElementsByTagNameNS("*", name);
+    if (nodes.length && nodes[0].textContent) {
+      return nodes[0].textContent.trim();
+    }
+  }
+  return "";
+}
+
+function formatTrafficTime(value){
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("no-NO", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function renderTraffic(messages){
+  const el = document.getElementById("traffic-list");
+
+  if (!messages.length) {
+    el.innerHTML = `<div class="traffic-empty">Ingen trafikkmeldinger funnet akkurat nå.</div>`;
+    return;
+  }
+
+  el.innerHTML = messages.map(msg => {
+    const title = msg.summary || "Trafikkmelding";
+    const description = msg.description || "Ingen beskrivelse tilgjengelig.";
+    const validity = msg.endTime
+      ? `Gjelder til ${formatTrafficTime(msg.endTime)}`
+      : (msg.startTime ? `Publisert ${formatTrafficTime(msg.startTime)}` : "");
+    return `
+      <div class="traffic-item">
+        <div class="traffic-title">${title}</div>
+        <div class="traffic-text">${description}</div>
+        <div class="traffic-meta">${validity}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function fetchTrafficMessages(){
+  const res = await fetch("https://api.entur.io/realtime/v1/rest/sx?datasetId=SKY&maxSize=20", {
+    headers: {
+      "ET-Client-Name": ET_CLIENT_NAME
+    }
+  });
+
+  if (!res.ok) {
+    throw new Error("Trafikkmeldinger HTTP " + res.status);
+  }
+
+  const xmlText = await res.text();
+  const xml = new DOMParser().parseFromString(xmlText, "text/xml");
+  const situations = Array.from(xml.getElementsByTagNameNS("*", "PtSituationElement"));
+
+  const messages = situations.map(node => {
+    const summary = textFromFirst(node, ["Summary", "summary"]);
+    const description = textFromFirst(node, ["Description", "description"]);
+    const startTime = textFromFirst(node, ["StartTime", "startTime"]);
+    const endTime = textFromFirst(node, ["EndTime", "endTime"]);
+
+    return {
+      summary,
+      description,
+      startTime,
+      endTime
+    };
+  }).filter(msg => msg.summary || msg.description);
+
+  return messages.slice(0, 4);
+}
+
+async function fetchData(){
+  try {
+    const [floridaCalls, mohlenprisCalls, trafficMessages] = await Promise.all([
+      fetchStopData(FLORIDA_STOP_ID),
+      fetchStopData(MOHLENPRIS_STOP_ID),
+      fetchTrafficMessages()
+    ]);
+
+    const floridaSorted = sortCalls(floridaCalls);
+    const mohlenprisSorted = sortCalls(mohlenprisCalls);
+
+    render("florida-bybane", floridaSorted.filter(isBybane).slice(0, 8));
+    render("florida-buss", floridaSorted.filter(isBus).slice(0, 8));
+    render("mohlenpris-buss", mohlenprisSorted.filter(isBus).slice(0, 8));
+    renderTraffic(trafficMessages);
+
+    const nowText = new Date().toLocaleTimeString("no-NO");
+    document.getElementById("updated").textContent = "Oppdatert: " + nowText;
+    document.getElementById("traffic-updated").textContent = "Sist oppdatert: " + nowText;
+  } catch (error) {
+    console.error(error);
+
+    render("florida-bybane", [], "Klarte ikke hente Bybane");
+    render("florida-buss", [], "Klarte ikke hente buss");
+    render("mohlenpris-buss", [], "Klarte ikke hente buss");
+
+    document.getElementById("traffic-list").innerHTML =
+      `<div class="traffic-empty">Klarte ikke hente trafikkmeldinger.</div>`;
+
+    document.getElementById("updated").textContent = "Feil ved oppdatering";
+    document.getElementById("traffic-updated").textContent = "Feil ved oppdatering";
+  }
+}
+
+fetchData();
+setInterval(fetchData, 30000);
+</script>
+
+</body>
+</html>
