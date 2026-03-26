@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Ryde-kart</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <style>
+    html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+    #map { height: 100vh; width: 100%; }
+    .panel {
+      position: absolute;
+      z-index: 1000;
+      top: 12px;
+      left: 12px;
+      background: rgba(255,255,255,0.96);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      max-width: 320px;
+    }
+    .panel h1 { font-size: 16px; margin: 0 0 6px; }
+    .panel p { font-size: 13px; margin: 6px 0; line-height: 1.4; }
+    .panel input, .panel button {
+      width: 100%; box-sizing: border-box; margin-top: 8px;
+      padding: 10px; border-radius: 8px; border: 1px solid #d0d7de;
+    }
+    .panel button { cursor: pointer; background: #111827; color: white; border: none; }
+    .meta { font-size: 12px; color: #555; margin-top: 8px; }
+    .legend { font-size: 12px; color: #333; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Live Ryde-kart</h1>
+    <p>Viser tilgjengelige RYDE-kjøretøy fra Entur/GBFS for valgt system-id, f.eks. <code>rydeskien</code>.</p>
+    <input id="systemId" value="rydeskien" placeholder="F.eks. rydeskien" />
+    <button id="loadBtn">Last inn / oppdater</button>
+    <div class="meta" id="status">Klar.</div>
+    <div class="legend">Tips: For andre byer, bytt system-id til riktig Ryde-feed fra Entur-manifestet.</div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const map = L.map('map').setView([59.2096, 9.6080], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap-bidragsytere'
+    }).addTo(map);
+
+    const markers = L.layerGroup().addTo(map);
+    let zoneLayer;
+
+    async function fetchJson(url) {
+      const res = await fetch(url, { headers: { 'ET-Client-Name': 'demo-ryde-map' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return await res.json();
+    }
+
+    function setStatus(text) {
+      document.getElementById('status').textContent = text;
+    }
+
+    async function loadRydeSystem() {
+      const systemId = document.getElementById('systemId').value.trim();
+      if (!systemId) return;
+
+      setStatus(`Laster ${systemId} ...`);
+      markers.clearLayers();
+      if (zoneLayer) {
+        map.removeLayer(zoneLayer);
+        zoneLayer = null;
+      }
+
+      try {
+        const gbfsRoot = await fetchJson(`https://api.entur.io/mobility/v2/gbfs/v3/${systemId}/gbfs`);
+        const feeds = gbfsRoot?.data?.feeds || [];
+        const vehicleStatusUrl = feeds.find(f => f.name === 'vehicle_status')?.url;
+        const geofencingUrl = feeds.find(f => f.name === 'geofencing_zones')?.url;
+        const systemInfoUrl = feeds.find(f => f.name === 'system_information')?.url;
+
+        if (!vehicleStatusUrl) throw new Error('Fant ikke vehicle_status-feed.');
+
+        const [vehicleStatus, geofencing, systemInfo] = await Promise.all([
+          fetchJson(vehicleStatusUrl),
+          geofencingUrl ? fetchJson(geofencingUrl).catch(() => null) : Promise.resolve(null),
+          systemInfoUrl ? fetchJson(systemInfoUrl).catch(() => null) : Promise.resolve(null)
+        ]);
+
+        const vehicles = vehicleStatus?.data?.vehicles || [];
+        const available = vehicles.filter(v => {
+          if (typeof v.is_reserved === 'boolean' && v.is_reserved) return false;
+          if (typeof v.is_disabled === 'boolean' && v.is_disabled) return false;
+          if (typeof v.is_available === 'boolean') return v.is_available;
+          return true;
+        });
+
+        const latlngs = [];
+        available.forEach(v => {
+          if (typeof v.lat !== 'number' || typeof v.lon !== 'number') return;
+          const marker = L.circleMarker([v.lat, v.lon], { radius: 6 });
+          marker.bindPopup(`
+            <strong>${systemInfo?.data?.name || systemId}</strong><br>
+            ID: ${v.vehicle_id || 'ukjent'}<br>
+            Batteri: ${v.current_range_meters ? Math.round(v.current_range_meters/1000) + ' km estimert' : 'ukjent'}<br>
+            Type: ${v.vehicle_type_id || 'ukjent'}
+          `);
+          marker.addTo(markers);
+          latlngs.push([v.lat, v.lon]);
+        });
+
+        const features = geofencing?.data?.geofencing_zones?.features;
+        if (features?.length) {
+          zoneLayer = L.geoJSON({ type: 'FeatureCollection', features }).addTo(map);
+        }
+
+        if (latlngs.length) {
+          map.fitBounds(latlngs, { padding: [40, 40] });
+        }
+
+        setStatus(`Oppdatert: ${available.length} tilgjengelige kjøretøy vist.`);
+      } catch (err) {
+        console.error(err);
+        setStatus(`Feil: ${err.message}`);
+      }
+    }
+
+    document.getElementById('loadBtn').addEventListener('click', loadRydeSystem);
+    loadRydeSystem();
+    setInterval(loadRydeSystem, 30000);
+  </script>
+</body>
+</html>
