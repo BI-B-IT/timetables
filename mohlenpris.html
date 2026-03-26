@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Møhlenpris – buss nord og sør</title>
+  <style>
+    :root {
+      --bg: #eef4f8;
+      --bg2: #f8fbfd;
+      --panel: #ffffff;
+      --border: #d7e5ef;
+      --text: #173042;
+      --muted: #5f7686;
+      --accent: #0073b0;
+      --accent-soft: #e8f3fa;
+      --ok: #118a4b;
+      --shadow: 0 10px 26px rgba(18, 44, 61, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, #ffffff 0%, #f7fbfd 35%, #eef4f8 100%);
+    }
+
+    body {
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 320px;
+    }
+
+    .logo-wrap {
+      width: 92px;
+      height: 92px;
+      border-radius: 18px;
+      background: white;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .logo-wrap img {
+      width: 76%;
+      height: auto;
+      display: block;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 2.4rem;
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .clock-card {
+      min-width: 230px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      text-align: right;
+    }
+
+    .clock-label {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+    }
+
+    .clock {
+      color: var(--accent);
+      font-size: 2.3rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 22px;
+      background: rgba(255,255,255,0.72);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 12px 16px;
+      flex-wrap: wrap;
+    }
+
+    .statusbar div {
+      color: var(--muted);
+      font-size: 0.96rem;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid #ecf3f8;
+      background: linear-gradient(180deg, #ffffff 0%, #f9fcfe 100%);
+    }
+
+    .panel-title {
+      margin: 0;
+      font-size: 1.4rem;
+      letter-spacing: -0.02em;
+    }
+
+    .panel-subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .badge {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .departures {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .departure {
+      display: grid;
+      grid-template-columns: 90px 1fr 110px;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid #e5eef5;
+      background: #f9fcfe;
+    }
+
+    .line-box {
+      min-height: 68px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      padding: 8px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .line-number {
+      font-size: 1.35rem;
+      line-height: 1.1;
+    }
+
+    .line-mode {
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .destination {
+      font-size: 1.12rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .time-block {
+      text-align: right;
+    }
+
+    .time-abs {
+      font-size: 1.28rem;
+      font-weight: 700;
+    }
+
+    .time-rel {
+      margin-top: 5px;
+      color: var(--ok);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .loading,
+    .error,
+    .empty {
+      padding: 18px;
+      border: 1px solid #e5eef5;
+      background: #f9fcfe;
+      border-radius: 18px;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .footer {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 980px) {
+      .board {
+        grid-template-columns: 1fr;
+      }
+      .clock-card {
+        text-align: left;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+
+      .logo-wrap {
+        width: 76px;
+        height: 76px;
+      }
+
+      .title h1 {
+        font-size: 2rem;
+      }
+
+      .departure {
+        grid-template-columns: 84px 1fr;
+      }
+
+      .time-block {
+        grid-column: 1 / -1;
+        text-align: left;
+        padding-top: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-wrap">
+          <img
+            src="https://media.snl.no/media/4802/standard_bi.png"
+            alt="Handelshøyskolen BI logo"
+            onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=&quot;font-size:1.5rem;font-weight:700;color:#0073b0&quot;>BI</div>';"
+          />
+        </div>
+        <div class="title">
+          <h1>Møhlenpris</h1>
+          <div class="subtitle">Bergen · buss nord og sør</div>
+        </div>
+      </div>
+
+      <div class="clock-card">
+        <div class="clock-label">Klokken er</div>
+        <div class="clock" id="clock">--:--:--</div>
+      </div>
+    </header>
+
+    <div class="statusbar">
+      <div id="lastUpdated">Oppdaterer avganger…</div>
+      <div>Oppdateres automatisk hvert 30. sekund</div>
+    </div>
+
+    <main class="board">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Møhlenpris nord</h2>
+            <div class="panel-subtitle" id="northSubtitle">Mot sentrum</div>
+          </div>
+          <div class="badge" id="northBadge">Laster…</div>
+        </div>
+        <div class="departures" id="northDepartures">
+          <div class="loading">Laster bussavganger…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Møhlenpris sør</h2>
+            <div class="panel-subtitle" id="southSubtitle">Ut av byen</div>
+          </div>
+          <div class="badge" id="southBadge">Laster…</div>
+        </div>
+        <div class="departures" id="southDepartures">
+          <div class="loading">Laster bussavganger…</div>
+        </div>
+      </section>
+    </main>
+
+    <div class="footer">
+      Data fra Entur · dynamisk oppslag av Møhlenpris via geocoder
+    </div>
+  </div>
+
+  <script>
+    const ET_CLIENT_NAME = "din-github-bruker-mohlenpris-board";
+    const GEOCODER_URL = "https://api.entur.io/geocoder/v1/autocomplete";
+    const JOURNEY_URL = "https://api.entur.io/journey-planner/v3/graphql";
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleTimeString("no-NO", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    }
+
+    function formatTime(isoString) {
+      return new Date(isoString).toLocaleTimeString("no-NO", {
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function minutesUntil(isoString) {
+      const diffMinutes = Math.round((new Date(isoString) - new Date()) / 60000);
+      if (diffMinutes <= 0) return "nå";
+      if (diffMinutes === 1) return "1 min";
+      return `${diffMinutes} min`;
+    }
+
+    function uniqueById(items) {
+      const seen = new Set();
+      return items.filter(item => {
+        if (!item?.id || seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+    }
+
+    function stopLabel(feature) {
+      return feature?.properties?.label || feature?.properties?.name || "Møhlenpris";
+    }
+
+    function stopId(feature) {
+      return feature?.properties?.id || null;
+    }
+
+    function latitude(feature) {
+      return feature?.geometry?.coordinates?.[1] ?? null;
+    }
+
+    function isLikelyStopFeature(feature) {
+      const id = stopId(feature) || "";
+      const label = (stopLabel(feature) || "").toLowerCase();
+      return id.startsWith("NSR:StopPlace:") && label.includes("møhlenpris");
+    }
+
+    async function lookupMohlenprisStops() {
+      const url = `${GEOCODER_URL}?text=${encodeURIComponent("Møhlenpris Bergen")}&lang=no&size=15`;
+
+      const response = await fetch(url, {
+        headers: {
+          "ET-Client-Name": ET_CLIENT_NAME
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Geocoder-feil (${response.status})`);
+      }
+
+      const json = await response.json();
+      const features = Array.isArray(json.features) ? json.features : [];
+
+      const stops = uniqueById(
+        features.filter(isLikelyStopFeature).map(feature => ({
+          id: stopId(feature),
+          label: stopLabel(feature),
+          lat: latitude(feature)
+        }))
+      );
+
+      if (stops.length < 2) {
+        throw new Error("Fant ikke to Møhlenpris-holdeplasser");
+      }
+
+      const withLat = stops.filter(s => typeof s.lat === "number");
+      const sorted = (withLat.length >= 2 ? withLat : stops).sort((a, b) => (b.lat || 0) - (a.lat || 0));
+
+      return {
+        north: sorted[0],
+        south: sorted[sorted.length - 1]
+      };
+    }
+
+    async function fetchStopDepartures(stopPlaceId) {
+      const query = `
+      {
+        stopPlace(id: "${stopPlaceId}") {
+          id
+          name
+          estimatedCalls(numberOfDepartures: 20) {
+            realtime
+            aimedDepartureTime
+            expectedDepartureTime
+            destinationDisplay {
+              frontText
+            }
+            serviceJourney {
+              line {
+                publicCode
+                name
+                transportMode
+              }
+            }
+            quay {
+              publicCode
+            }
+          }
+        }
+      }`;
+
+      const response = await fetch(JOURNEY_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "ET-Client-Name": ET_CLIENT_NAME
+        },
+        body: JSON.stringify({ query })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Journey Planner-feil (${response.status})`);
+      }
+
+      const json = await response.json();
+
+      if (json.errors) {
+        console.error(json.errors);
+        throw new Error("GraphQL-feil fra Entur");
+      }
+
+      const calls = json?.data?.stopPlace?.estimatedCalls || [];
+
+      return calls
+        .filter(call => {
+          const mode = (call?.serviceJourney?.line?.transportMode || "").toLowerCase();
+          return mode === "bus";
+        })
+        .filter(call => call?.expectedDepartureTime || call?.aimedDepartureTime)
+        .sort((a, b) => {
+          const ta = new Date(a.expectedDepartureTime || a.aimedDepartureTime).getTime();
+          const tb = new Date(b.expectedDepartureTime || b.aimedDepartureTime).getTime();
+          return ta - tb;
+        })
+        .slice(0, 8);
+    }
+
+    function renderDepartures(targetId, departures) {
+      const target = document.getElementById(targetId);
+
+      if (!departures.length) {
+        target.innerHTML = `<div class="empty">Ingen bussavganger funnet akkurat nå.</div>`;
+        return;
+      }
+
+      target.innerHTML = departures.map(call => {
+        const line = call?.serviceJourney?.line?.publicCode || "–";
+        const destination = call?.destinationDisplay?.frontText || "Ukjent destinasjon";
+        const time = call?.expectedDepartureTime || call?.aimedDepartureTime;
+        const quay = call?.quay?.publicCode ? `Plattform ${call.quay.publicCode}` : "Plattform ikke oppgitt";
+        const realtime = call?.realtime ? "Sanntid" : "Planlagt";
+
+        return `
+          <article class="departure">
+            <div class="line-box">
+              <div class="line-number">${line}</div>
+              <div class="line-mode">Buss</div>
+            </div>
+            <div>
+              <div class="destination">${destination}</div>
+              <div class="meta">${quay} · ${realtime}</div>
+            </div>
+            <div class="time-block">
+              <div class="time-abs">${formatTime(time)}</div>
+              <div class="time-rel">${minutesUntil(time)}</div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function setBadge(id, text) {
+      document.getElementById(id).textContent = text;
+    }
+
+    async function refreshBoard() {
+      try {
+        setBadge("northBadge", "Laster…");
+        setBadge("southBadge", "Laster…");
+
+        const { north, south } = await lookupMohlenprisStops();
+
+        document.getElementById("northSubtitle").textContent = `Mot sentrum · ${north.label}`;
+        document.getElementById("southSubtitle").textContent = `Ut av byen · ${south.label}`;
+
+        setBadge("northBadge", north.label);
+        setBadge("southBadge", south.label);
+
+        const [northDepartures, southDepartures] = await Promise.all([
+          fetchStopDepartures(north.id),
+          fetchStopDepartures(south.id)
+        ]);
+
+        renderDepartures("northDepartures", northDepartures);
+        renderDepartures("southDepartures", southDepartures);
+
+        document.getElementById("lastUpdated").textContent =
+          `Sist oppdatert: ${new Date().toLocaleTimeString("no-NO", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+          })}`;
+      } catch (error) {
+        console.error(error);
+        document.getElementById("northDepartures").innerHTML =
+          `<div class="error">Klarte ikke hente nordgående data.</div>`;
+        document.getElementById("southDepartures").innerHTML =
+          `<div class="error">Klarte ikke hente sørgående data.</div>`;
+        document.getElementById("lastUpdated").textContent = `Feil ved oppdatering: ${error.message}`;
+        setBadge("northBadge", "Feil");
+        setBadge("southBadge", "Feil");
+      }
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    refreshBoard();
+    setInterval(refreshBoard, 30000);
+  </script>
+</body>
+</html>
